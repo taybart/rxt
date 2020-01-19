@@ -74,6 +74,10 @@ func initScreen() {
 
 func main() {
 	flag.Parse()
+	if filename == "" {
+		fmt.Println("Please specify a file name: rxt -f ./file")
+		os.Exit(1)
+	}
 	initScreen()
 	s := state{
 		index: 0,
