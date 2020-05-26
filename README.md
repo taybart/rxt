@@ -4,7 +4,6 @@
 
 ```
 $ go get -u github.com/taybart/rxt
-$ go install github.com/taybart/rxt
 $ rxt -f taybart/rest/test/file.rest
 ```
 
