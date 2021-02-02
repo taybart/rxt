@@ -7,8 +7,8 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/gdamore/tcell"
-	"github.com/gdamore/tcell/encoding"
+	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/encoding"
 	"github.com/taybart/log"
 )
 
@@ -74,29 +74,34 @@ func initScreen() {
 
 func main() {
 	flag.Parse()
-	if filename == "" {
-		fmt.Println("Please specify a file name: rxt -f ./file")
-		os.Exit(1)
-	}
-	initScreen()
+
 	s := state{
 		index: 0,
 		rx:    "",
+		file:  []string{},
 	}
+
+	if filename == "" {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Enter test text: ")
+		text, _ := reader.ReadString('\n')
+		s.file = append(s.file, text)
+	} else {
+		file, err := os.Open(filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := scanner.Text()
+			s.file = append(s.file, line)
+		}
+	}
+
+	initScreen()
 
 	quit := make(chan bool)
-
-	file, err := os.Open(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		s.file = append(s.file, line)
-	}
-
 	valid := regexp.MustCompile("[^[:cntrl:]]")
 	go func() {
 		for {
@@ -125,6 +130,9 @@ func main() {
 						s.index = 0
 					}
 					continue
+				case tcell.KeyCtrlC:
+					quit <- true
+					break
 				}
 				switch r := ev.Rune(); r {
 				case 'q':
@@ -140,6 +148,7 @@ func main() {
 			}
 		}
 	}()
+
 	<-quit
 	scr.Fini()
 }
@@ -172,8 +181,11 @@ func draw(s state) {
 
 					for _, c := range m[1:] {
 						puts(col, i, w, c, true, tcell.StyleDefault.Foreground(tcell.Color142))
-						col += len(c) + 1
+						col += len(c)
+						puts(col, i, w, ", ", true, tcell.StyleDefault.Foreground(tcell.Color142))
+						col += 2
 					}
+					col -= 2
 
 					puts(col, i, w, "}}", true, tcell.StyleDefault.Foreground(tcell.Color66))
 				}
